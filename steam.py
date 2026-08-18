@@ -3,7 +3,7 @@ import requests
 import json
 import re
 import pandas as pd
-from datetime import datetime
+from datetime import datetime, timezone, timedelta
 from io import StringIO
 import os
 import argparse
@@ -37,6 +37,7 @@ class SteamFriends:
         # 重构版本利用当前类来存储 README 原始内容和记录表格开始行号（可修改）。
         self.content = []
         self.table_start_index = 0
+        self.shanghai_timezone = timezone(timedelta(hours=+8), 'CST')
 
         self.friend_list_url = 'https://api.steampowered.com/ISteamUser/GetFriendList/v0001/'
         self.friend_summaries_url = 'https://api.steampowered.com/ISteamUser/GetPlayerSummaries/v0002/'
@@ -66,6 +67,9 @@ class SteamFriends:
         elif response.status_code == 500:
             print('服务器内部错误，请检查你的steamid的值，不要多复制或者少复制了几位。')
             sys.exit(500)
+        elif response.status_code == 400:
+            print('BAD REQUESTS，未找到webapi或id的值')
+            sys.exit(400)
         else:
             print(f'收到未处理的状态码：{response.status_code}')
         json_list = json.loads(response.text)
@@ -147,8 +151,7 @@ class SteamFriends:
                     'Name': self.name[num],
                     'steamid': self.steamid[num],
                     'is_friend': '✅',
-                    'BFD': datetime.utcfromtimestamp(self.friends_list[self.steamid_num[num]]).strftime(
-                        '%Y-%m-%d %H:%M:%S'),
+                    'BFD': datetime.fromtimestamp(self.friends_list[self.steamid_num[num]], self.shanghai_timezone).strftime('%Y-%m-%d %H:%M:%S'),
                     'removed_time': '',
                     'Remark': ''
                 }
